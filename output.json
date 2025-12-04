@@ -1,0 +1,287 @@
+{
+  "title": "Cold Shrimp and Linguine Pasta Salad ",
+  "ingredients": [
+    {
+      "name": "linguine pasta",
+      "quantity": 12.0,
+      "measurement": "ounces",
+      "descriptor": null,
+      "preparation": null
+    },
+    {
+      "name": "large shrimp (31-35/pound)",
+      "quantity": 1.0,
+      "measurement": "pound",
+      "descriptor": "frozen",
+      "preparation": null
+    },
+    {
+      "name": "peas",
+      "quantity": 1.0,
+      "measurement": "cup",
+      "descriptor": "frozen",
+      "preparation": null
+    },
+    {
+      "name": "mayonnaise",
+      "quantity": 0.5,
+      "measurement": "cup",
+      "descriptor": null,
+      "preparation": null
+    },
+    {
+      "name": "Dijon mustard",
+      "quantity": 2.0,
+      "measurement": "tablespoons",
+      "descriptor": null,
+      "preparation": null
+    },
+    {
+      "name": "lemon zest",
+      "quantity": 1.0,
+      "measurement": "teaspoon",
+      "descriptor": null,
+      "preparation": null
+    },
+    {
+      "name": "lemon juice",
+      "quantity": 1.0,
+      "measurement": "tablespoon",
+      "descriptor": null,
+      "preparation": null
+    },
+    {
+      "name": "dill",
+      "quantity": 1.0,
+      "measurement": "tablespoon",
+      "descriptor": "chopped fresh",
+      "preparation": null
+    },
+    {
+      "name": "paprika",
+      "quantity": 0.5,
+      "measurement": "teaspoon",
+      "descriptor": "smoked",
+      "preparation": null
+    },
+    {
+      "name": "salt",
+      "quantity": 0.25,
+      "measurement": "teaspoon",
+      "descriptor": null,
+      "preparation": null
+    },
+    {
+      "name": "red peppers or piquanté peppers (such as Peppadew)",
+      "quantity": 0.6666666666666666,
+      "measurement": "cup",
+      "descriptor": "roasted",
+      "preparation": "cut into strips"
+    },
+    {
+      "name": "carrot",
+      "quantity": 1.0,
+      "measurement": null,
+      "descriptor": "medium",
+      "preparation": "coarsely shredded (1/2 cup)"
+    },
+    {
+      "name": "finely celery",
+      "quantity": 0.5,
+      "measurement": "cup",
+      "descriptor": "chopped",
+      "preparation": null
+    },
+    {
+      "name": "finely red onion",
+      "quantity": 3.0,
+      "measurement": "tablespoons",
+      "descriptor": "chopped",
+      "preparation": null
+    }
+  ],
+  "tools": [
+    "bowl",
+    "colander",
+    "pot",
+    "whisk"
+  ],
+  "methods": {
+    "primary_cooking_methods": [
+      "roast"
+    ],
+    "other_methods": [
+      "chill",
+      "combine",
+      "cool",
+      "cover"
+    ]
+  },
+  "steps": [
+    {
+      "step_number": 1,
+      "description": "Bring a large pot of lightly salted water to a boil.",
+      "ingredients": [
+        "large shrimp (31-35/pound)"
+      ],
+      "tools": [
+        "pot"
+      ],
+      "methods": {
+        "primary": [],
+        "other": []
+      },
+      "time": {
+        "duration": null
+      },
+      "temperature": {}
+    },
+    {
+      "step_number": 2,
+      "description": "Cook pasta according to package directions, adding shrimp and peas for the last 3 minutes of cooking time.",
+      "ingredients": [
+        "linguine pasta",
+        "large shrimp (31-35/pound)",
+        "peas"
+      ],
+      "tools": [],
+      "methods": {
+        "primary": [],
+        "other": []
+      },
+      "time": {
+        "duration": "3 minutes"
+      },
+      "temperature": {}
+    },
+    {
+      "step_number": 3,
+      "description": "Drain in a colander.",
+      "ingredients": [],
+      "tools": [
+        "colander"
+      ],
+      "methods": {
+        "primary": [],
+        "other": []
+      },
+      "time": {
+        "duration": null
+      },
+      "temperature": {}
+    },
+    {
+      "step_number": 4,
+      "description": "Rinse with cold water to cool quickly.",
+      "ingredients": [],
+      "tools": [],
+      "methods": {
+        "primary": [],
+        "other": [
+          "cool"
+        ]
+      },
+      "time": {
+        "duration": null
+      },
+      "temperature": {}
+    },
+    {
+      "step_number": 5,
+      "description": "Meanwhile, whisk together mayonnaise, mustard, lemon zest, lemon juice, dill, smoked paprika, and salt in a large bowl.",
+      "ingredients": [
+        "large shrimp (31-35/pound)",
+        "mayonnaise",
+        "dijon mustard",
+        "lemon zest",
+        "lemon juice",
+        "dill",
+        "paprika",
+        "salt"
+      ],
+      "tools": [
+        "whisk",
+        "bowl"
+      ],
+      "methods": {
+        "primary": [],
+        "other": []
+      },
+      "time": {
+        "duration": null
+      },
+      "temperature": {}
+    },
+    {
+      "step_number": 6,
+      "description": "Add pasta mixture, roasted red peppers, carrot, celery, and red onion.",
+      "ingredients": [
+        "linguine pasta",
+        "red peppers or piquanté peppers (such as peppadew)",
+        "carrot",
+        "finely celery",
+        "finely red onion"
+      ],
+      "tools": [],
+      "methods": {
+        "primary": [
+          "roast"
+        ],
+        "other": []
+      },
+      "time": {
+        "duration": null
+      },
+      "temperature": {}
+    },
+    {
+      "step_number": 7,
+      "description": "Toss to combine.",
+      "ingredients": [],
+      "tools": [],
+      "methods": {
+        "primary": [],
+        "other": [
+          "combine"
+        ]
+      },
+      "time": {
+        "duration": null
+      },
+      "temperature": {}
+    },
+    {
+      "step_number": 8,
+      "description": "Serve immediately or chill, covered up to 4 hours.",
+      "ingredients": [],
+      "tools": [],
+      "methods": {
+        "primary": [],
+        "other": [
+          "chill",
+          "cover"
+        ]
+      },
+      "time": {
+        "duration": "4 hours"
+      },
+      "temperature": {}
+    },
+    {
+      "step_number": 9,
+      "description": "Garnish with additional dill.",
+      "ingredients": [
+        "dill"
+      ],
+      "tools": [],
+      "methods": {
+        "primary": [],
+        "other": []
+      },
+      "time": {
+        "duration": null
+      },
+      "temperature": {}
+    }
+  ]
+}

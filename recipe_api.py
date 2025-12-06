@@ -742,11 +742,41 @@ def parse_ingredient_line(line: str) -> Ingredient:
             preparation = prep_str
 
 
-    for tok in before_comma.split():
-        if tok.lower() in DESCRIPTORS:
-            descriptor_tokens.append(tok.lower())
+    descriptor_tokens = []
+    name_tokens = []
+
+    tagged = _pos_tag(before_comma)
+    desc_pos = {"JJ", "RB", "VBN"}
+
+    seen_noun = False
+    for tok, tag in tagged:
+        if not re.match(r"[A-Za-z]+$", tok):
+            continue
+
+        tok_lower = tok.lower()
+
+        if not seen_noun:
+            if tag.startswith("NN"):
+                seen_noun = True
+                name_tokens.append(tok)
+            elif tag in desc_pos or tok_lower in DESCRIPTORS:
+                descriptor_tokens.append(tok_lower)
+            else:
+                continue
         else:
-            name_tokens.append(tok)
+            if tag.startswith("NN"):
+                name_tokens.append(tok)
+            else:
+                if tag in desc_pos and tok_lower in DESCRIPTORS:
+                    descriptor_tokens.append(tok_lower)
+
+
+    if not name_tokens:
+        for tok in before_comma.split():
+            if tok.lower() in DESCRIPTORS:
+                descriptor_tokens.append(tok.lower())
+            else:
+                name_tokens.append(tok)
 
     descriptor = " ".join(descriptor_tokens) if descriptor_tokens else None
     name = " ".join(name_tokens).strip()
@@ -773,11 +803,19 @@ def split_into_atomic_steps(step_text: str) -> List[str]:
 
 
 def find_items_in_text(text: str, vocab: List[str]) -> List[str]:
+    if not vocab:
+        return []
     text_lower = text.lower()
+    pattern = r"\b(" + "|".join(sorted((re.escape(w.lower()) for w in vocab), key=len, reverse=True)) + r")\b"
+
+    matches = re.findall(pattern, text_lower)
     found: List[str] = []
-    for word in vocab:
-        if re.search(r"\b" + re.escape(word) + r"\b", text_lower):
-            found.append(word)
+    seen = set()
+    for m in matches:
+        if m not in seen:
+            seen.add(m)
+            found.append(m)
+
     return found
 
 
@@ -862,7 +900,6 @@ def _pos_tag(text: str):
         tokens = _nltk_word_tokenize(text)
         return _nltk_pos_tag(tokens)
     except LookupError as e:
-        # NLTK installed but models missing
         raise RuntimeError(
             "NLTK data for POS tagging is missing. Please run:\n"
             '    python -c "import nltk; nltk.download(\'punkt\'); nltk.download(\'averaged_perceptron_tagger\')"'
@@ -873,18 +910,28 @@ def extract_cooking_methods(text: str) -> List[str]:
     tagged = _pos_tag(text)
     methods: List[str] = []
 
-    for token, tag in tagged:
-        if tag.startswith("VB"):
-            lemma = _lemmatize(token, "v")
-            if lemma in COOKING_VERBS:
-                methods.append(lemma)
+    n = len(tagged)
+    for i, (token, tag) in enumerate(tagged):
+        is_verb_like = tag.startswith("VB")
+        is_noun_like = tag in ("NN", "NNP")
 
-
+        if not (is_verb_like or is_noun_like):
+            continue
+        if tag == "VBN" and i + 1 < n:
+            next_tag = tagged[i + 1][1]
+            if next_tag.startswith("NN"):
+                continue
+        if is_noun_like and i != 0:
+            continue
+        lemma = _lemmatize(token, "v")
+        
+        if lemma in COOKING_VERBS:
+            methods.append(lemma)
+    
     text_lower = text.lower()
     for verb in PRIMARY_METHODS + OTHER_METHODS:
         if " " in verb and verb in text_lower:
             methods.append(verb)
-
     seen = set()
     unique: List[str] = []
     
@@ -892,23 +939,24 @@ def extract_cooking_methods(text: str) -> List[str]:
         if m not in seen:
             seen.add(m)
             unique.append(m)
+    
     return unique
 
 
 def extract_tools_from_text(text: str) -> List[str]:
     tagged = _pos_tag(text)
     tools: List[str] = []
-
     for token, tag in tagged:
         if tag.startswith("NN"):
             lemma = _lemmatize(token, "n")
-            if lemma in TOOL_LEMMA_TO_CANONICAL:
-                tools.append(TOOL_LEMMA_TO_CANONICAL[lemma])
+            canonical = TOOL_LEMMA_TO_CANONICAL.get(lemma)
+            if canonical:
+                tools.append(canonical)
 
-    tools.extend(find_items_in_text(text, TOOLS))
+    multiword_tools = [t for t in TOOLS if " " in t]
+    tools.extend(find_items_in_text(text, multiword_tools))
     seen = set()
     unique: List[str] = []
-    
     for t in tools:
         if t not in seen:
             seen.add(t)
@@ -1019,22 +1067,21 @@ def parse_recipe_from_url(url: str) -> Recipe:
         steps=steps,
     )
 
-def _methods_for_json(methods: List[str]) -> Dict[str, List[str]]:
-    primary: List[str] = []
-    other: List[str] = []
 
+
+def _methods_for_json(methods: List[str]) -> List[str]:
+    seen = set()
+    ordered: List[str] = []
     for m in methods:
-        if m in PRIMARY_METHODS:
-            if m not in primary:
-                primary.append(m)
-        else:
-            if m not in other:
-                other.append(m)
+        if m in PRIMARY_METHODS and m not in seen:
+            seen.add(m)
+            ordered.append(m)
+    for m in methods:
+        if m not in PRIMARY_METHODS and m not in seen:
+            seen.add(m)
+            ordered.append(m)
 
-    return {
-        "primary": primary,
-        "other": other,
-    }
+    return ordered
 
 def recipe_to_json(recipe: Recipe) -> Dict[str, object]:
     ingredients_json: List[Dict[str, object]] = []

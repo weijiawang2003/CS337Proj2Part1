@@ -1050,12 +1050,37 @@ def collect_recipe_tools_and_methods(steps: List[Step]) -> Tuple[List[str], List
         methods_set.update(s.methods)
     return sorted(tools_set), sorted(methods_set)
 
+
+
+
 def parse_recipe_from_url(url: str) -> Recipe:
     html = fetch_html(url)
     base = parse_allrecipes_basic(html)
 
     ingredients = parse_ingredients(base["ingredients_raw"])
     steps = build_steps(base["steps_raw"], ingredients)
+    ingredient_names_lower = [
+        ing.name.lower() for ing in ingredients if ing.name
+    ]
+
+    gather_step = Step(
+        step_number=1,
+        description="Gather all ingredients.",
+        ingredients=ingredient_names_lower,
+        tools=[],
+        methods=["gather"],
+        time={},
+        temperature={},
+        action="gather",
+        objects=ingredient_names_lower,
+        modifiers={},
+        context={},
+    )
+
+    for idx, step in enumerate(steps, start=2):
+        step.step_number = idx
+    steps = [gather_step] + steps
+
     tools, methods = collect_recipe_tools_and_methods(steps)
 
     return Recipe(
@@ -1064,8 +1089,9 @@ def parse_recipe_from_url(url: str) -> Recipe:
         ingredients=ingredients,
         tools=tools,
         methods=methods,
-        steps=steps,
-    )
+        steps=steps,)
+
+
 
 
 

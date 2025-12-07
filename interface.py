@@ -4,7 +4,8 @@ import string
 import re
 from urllib.parse import quote
 
-from recipe_api import parse_recipe_from_url, Recipe, Step
+from parser import parse_recipe_from_url, Recipe, Step
+
 
 
 try:
@@ -116,7 +117,7 @@ class RecipeBot:
             "1", "ingredients", "ingredient list", "show me the ingredients list",
             "show ingredients", "go over ingredients", "go over ingredients list"
         ]:
-            return self.show_ingredients()
+            return self.answer_ingredients_question(norm)
 
         if norm in [
             "2", "steps", "go over steps", "start steps",
@@ -138,16 +139,37 @@ class RecipeBot:
         if "first step" in norm or "go to step one" in norm or "go to the first step" in norm:
             self.current_step_idx = 0
             return self.show_current_step()
+        
+        step_num = self._extract_step_number(norm)
+        if step_num is not None:
+            return self.go_to_step(step_num)
+
+
+        if "last step" in norm or "final step" in norm or "go to the end" in norm:
+            return self.go_to_last_step()
+
+        if self.is_steps_overview_question(norm):
+            return self.answer_steps_overview()
+
+
+        if "ingredient" in norm and not self.is_quantity_question(norm):
+            return self.answer_ingredients_question(norm)
+
+        if "tool" in norm or "equipment" in norm:
+            return self.answer_tools_question(norm)
 
 
         if self.is_time_question(norm):
             return self.answer_time_question()
 
         if self.is_temp_question(norm):
-            return self.answer_temp_question()
+            return self.answer_temp_question(norm)
 
         if self.is_quantity_question(norm):
             return self.answer_quantity_question(raw)
+
+        if self.is_substitution_question(norm):
+            return self.answer_substitution_question(norm)
 
         if (
             "how do i do that" in norm
@@ -248,6 +270,27 @@ class RecipeBot:
             return True
         return False
 
+
+    @staticmethod
+    def is_steps_overview_question(norm: str) -> bool:
+        if "how many steps" in norm or "number of steps" in norm:
+            return True
+        if "show all steps" in norm or "list all steps" in norm or "show me all steps" in norm:
+            return True
+        return False
+
+
+    @staticmethod
+    def is_substitution_question(norm: str) -> bool:
+        if "substitute for" in norm or "what can i substitute" in norm:
+            return True
+        if "what can i use instead" in norm or "use instead" in norm:
+            return True
+        if "instead of" in norm or "replacement for" in norm or "alternative to" in norm:
+            return True
+        return False
+
+
     @staticmethod
     def format_ingredient(ing) -> str:
         q = f"{ing.quantity:g} " if ing.quantity is not None else ""
@@ -255,6 +298,8 @@ class RecipeBot:
         desc = f"{ing.descriptor} " if ing.descriptor else ""
         prep = f", {ing.preparation}" if ing.preparation else ""
         return f"{q}{unit}{desc}{ing.name}{prep}"
+
+
 
     def load_recipe(self, url: str) -> str:
         if not url or not url.strip():
@@ -324,6 +369,39 @@ class RecipeBot:
         else:
             suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
         return f"{n}{suffix}"
+    
+
+    def go_to_step(self, n: int) -> str:
+        if self.recipe is None:
+            return "No recipe loaded. Please load a recipe first."
+        if n < 1 or n > len(self.recipe.steps):
+            return f"This recipe has {len(self.recipe.steps)} steps; step {n} does not exist."
+        self.current_step_idx = n - 1
+        return self.show_current_step()
+
+    def go_to_last_step(self) -> str:
+        if self.recipe is None:
+            return "No recipe loaded. Please load a recipe first."
+        self.current_step_idx = len(self.recipe.steps) - 1
+        return self.show_current_step()
+
+
+    @staticmethod
+    def _extract_step_number(norm: str) -> Optional[int]:
+        m = re.search(r"step\s*(\d+)", norm)
+        if m:
+            try:
+                return int(m.group(1))
+            except ValueError:
+                return None
+        m = re.search(r"(\d+)(st|nd|rd|th)?\s+step", norm)
+        if m:
+            try:
+                return int(m.group(1))
+            except ValueError:
+                return None
+        return None
+
 
 
 
@@ -356,7 +434,7 @@ class RecipeBot:
 
 
 
-    def answer_temp_question(self) -> str:
+    def answer_temp_question(self, norm: str) -> str:
         if self.recipe is None:
             return "No recipe loaded. Please load a recipe first."
 
@@ -365,27 +443,49 @@ class RecipeBot:
         except ValueError as e:
             return str(e)
 
-        if step.temperature:
-            key, value = next(iter(step.temperature.items()))
-            
-            if key == "oven":
-                return f"In this step, the oven should be at {value}."
-            else:
-                return f"In this step, the {key} temperature is {value}."
+        cooking_temp = step.temperature.get("cooking")
+        internal_temp = step.temperature.get("internal")
+        context_temp = step.context.get("cooking_temperature")
 
-        if "oven_temperature" in step.context:
-            return f"The temperature should be {step.context['oven_temperature']}."
+        wants_internal = any(
+            phrase in norm
+            for phrase in ["internal", "inside", "center", "thickest part", "reach", "chicken", "meat"]
+        )
+        wants_oven = "oven" in norm or "bake" in norm or "baking" in norm or "roast" in norm
+
+        if wants_internal and (internal_temp or internal_temp is not None):
+            if internal_temp:
+                return f"In this step, the internal temperature should be {internal_temp}."
+            for s in self.recipe.steps:
+                if s.temperature.get("internal"):
+                    return f"The internal temperature should be {s.temperature['internal']}."
+
+
+        if wants_oven:
+            if cooking_temp:
+                return f"In this step, the cooking temperature is {cooking_temp}."
+            if context_temp:
+                return f"The cooking temperature should be {context_temp}."
+
+        if cooking_temp:
+            return f"In this step, the cooking temperature is {cooking_temp}."
+        if context_temp:
+            return f"The cooking temperature should be {context_temp}."
+        if internal_temp:
+            return f"In this step, the internal temperature should be {internal_temp}."
 
 
         for s in self.recipe.steps:
-            if s.temperature:
-                key, value = next(iter(s.temperature.items()))
-                if key == "oven":
-                    return f"The recipe uses an oven temperature of {value}."
-                else:
-                    return f"The recipe uses a temperature of {value}."
-        
+            temp = s.temperature.get("cooking") or s.context.get("cooking_temperature")
+            if temp:
+                return f"The recipe uses a cooking temperature of {temp}."
+        for s in self.recipe.steps:
+            temp = s.temperature.get("internal")
+            if temp:
+                return f"The recipe specifies an internal temperature of {temp}."
+
         return "The recipe does not specify a temperature here."
+
 
 
 
@@ -507,6 +607,119 @@ class RecipeBot:
 
         
         return "I'm not sure what 'that' refers to here. Could you be more specific?"
+
+
+
+
+    def answer_ingredients_question(self, norm: str) -> str:
+        if self.recipe is None:
+            return "No recipe loaded. Please load a recipe first."
+
+        step = self.get_current_step()
+
+        if "all ingredient" in norm or "all the ingredients" in norm or "entire recipe" in norm or "whole recipe" in norm:
+            return self.show_ingredients()
+
+        if step.step_number == 1 and "this step" not in norm and "current step" not in norm:
+            return self.show_ingredients()
+
+
+        if "this step" in norm or "current step" in norm or "for this step" in norm:
+            names = step.ingredients
+            if not names:
+                return "This step does not list any specific ingredients."
+            lines = []
+            for name in names:
+                for ing in self.recipe.ingredients:
+                    if ing.name.lower() == name:
+                        lines.append(f"- {self.format_ingredient(ing)}")
+                        break
+            if not lines:
+                return "I couldn't find ingredient details for this step."
+            return "For this step, you need:\n" + "\n".join(lines)
+
+        if step.step_number > 1:
+            names = step.ingredients
+            if not names:
+                return "This step does not list any specific ingredients."
+            lines = []
+            for name in names:
+                for ing in self.recipe.ingredients:
+                    if ing.name.lower() == name:
+                        lines.append(f"- {self.format_ingredient(ing)}")
+                        break
+            if not lines:
+                return "I couldn't find ingredient details for this step."
+            return "For this step, you need:\n" + "\n".join(lines)
+
+        return self.show_ingredients()
+
+    def answer_tools_question(self, norm: str) -> str:
+        if self.recipe is None:
+            return "No recipe loaded. Please load a recipe first."
+
+        step = self.get_current_step()
+
+        if "this step" in norm or "current step" in norm or "for this step" in norm:
+            if not step.tools:
+                return "This step doesn't need any special tools—just standard kitchen items."
+            return "For this step, you need: " + ", ".join(step.tools) + "."
+        else:
+            if not self.recipe.tools:
+                return "No specific tools were detected for this recipe."
+            return "For this recipe, you need: " + ", ".join(self.recipe.tools) + "."
+
+    def answer_steps_overview(self) -> str:
+        if self.recipe is None:
+            return "No recipe loaded. Please load a recipe first."
+        total = len(self.recipe.steps)
+        lines = [f"This recipe has {total} steps.", "Here are all the steps:"]
+        for step in self.recipe.steps:
+            lines.append(f"{step.step_number}. {step.description}")
+        return "\n".join(lines)
+
+    def answer_substitution_question(self, norm: str) -> str:
+        if self.recipe is None:
+            return "No recipe loaded. Please load a recipe first."
+        
+        patterns = [
+            r"substitute for ([a-z ]+)",
+            r"instead of ([a-z ]+)",
+            r"replacement for ([a-z ]+)",
+            r"alternative to ([a-z ]+)",
+            r"what can i use instead of ([a-z ]+)",
+        ]
+
+        target_phrase: Optional[str] = None
+        for pat in patterns:
+            m = re.search(pat, norm)
+            if m:
+                target_phrase = m.group(1).strip()
+                break
+
+        ingredient_name: Optional[str] = None
+
+        if target_phrase:
+            for ing in self.recipe.ingredients:
+                name_low = ing.name.lower()
+                if target_phrase in name_low or name_low in target_phrase:
+                    ingredient_name = ing.name
+                    break
+            
+            if ingredient_name is None:
+                ingredient_name = target_phrase
+
+
+        if ingredient_name is None:
+            step = self.get_current_step()
+            if step.ingredients:
+                ingredient_name = step.ingredients[-1]
+
+        if ingredient_name is None:
+            return "I'm not sure which ingredient you want to substitute."
+
+        query = f"substitute for {ingredient_name}".replace(" ", "+")
+        return f"https://www.google.com/search?q={query}"
 
 
 if __name__ == "__main__":
